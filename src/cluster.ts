@@ -1,5 +1,6 @@
 import { Cluster } from 'puppeteer-cluster';
 import { Page, Viewport, ScreenshotOptions, PDFOptions } from 'puppeteer';
+import { enableRequestInterception } from './interception';
 
 export type ClusterScreenshotTaskData = { url: string } & Viewport & ScreenshotOptions;
 
@@ -23,6 +24,7 @@ export const initCluster = async () => {
   });
 
   await cluster.task(async ({ page, data }: { page: Page; data: ClusterTaskData }) => {
+    await enableRequestInterception(page);
     if ('format' in data) {
       const { url, ...options } = data;
       const start = Date.now();

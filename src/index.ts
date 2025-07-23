@@ -1,7 +1,11 @@
+import dotenv from 'dotenv';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { getCluster } from './cluster';
 import routes from './routes';
+
+// 加载 .env 文件中的变量到 process.env
+dotenv.config();
 
 async function bootstrap() {
   // Step 1: 启动 puppeteer-cluster
