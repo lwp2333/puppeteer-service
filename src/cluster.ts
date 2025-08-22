@@ -2,9 +2,17 @@ import { Cluster } from 'puppeteer-cluster';
 import { Page, Viewport, ScreenshotOptions, PDFOptions } from 'puppeteer';
 import { enableRequestInterception } from './interception';
 
-export type ClusterScreenshotTaskData = { url: string } & Viewport & ScreenshotOptions;
+export type CommonParams = {
+  url: string;
+  clipDom: boolean;
+  waitUntilHookFunctionTriggered: boolean;
+  hookFunctionName: string;
+  transparentBackground: boolean;
+};
 
-export type ClusterPDFTaskData = { url: string } & PDFOptions;
+export type ClusterScreenshotTaskData = CommonParams & Viewport & ScreenshotOptions;
+
+export type ClusterPDFTaskData = CommonParams & PDFOptions;
 
 export type ClusterTaskData = ClusterScreenshotTaskData | ClusterPDFTaskData;
 

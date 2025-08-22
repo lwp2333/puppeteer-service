@@ -28,5 +28,5 @@ export default function () {
     'status is 200': r => r.status === 200,
   });
 
-  sleep(0.5); // 每个虚拟用户每次请求后等待 0.33 秒
+  sleep(0.33); // 每个虚拟用户每次请求后等待 0.33 秒
 }

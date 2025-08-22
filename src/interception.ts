@@ -18,10 +18,14 @@ export const enableRequestInterception = async (page: Page) => {
         // originalUrl.protocol = 'http:'; // 如果需要强制使用 HTTP 协议，可以取消注释这一行
         const newUrl = originalUrl.href;
 
-        console.log(`[拦截] ${oldUrl}`);
-        console.log(`[替换] → ${newUrl}`);
+        console.log(`[拦截] ${oldUrl}、[替换] → ${newUrl}`);
 
-        return req.continue({ url: newUrl });
+        // 替换 URL 后，referer 可能会发生冲突，索性直接删掉
+        const originHeaders = req.headers();
+
+        delete originHeaders['Referer'];
+
+        return req.continue({ url: newUrl, headers: originHeaders });
       }
 
       // 正常放行

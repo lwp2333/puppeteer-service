@@ -1,5 +1,5 @@
 import OSS from 'ali-oss';
-import { uuidv4 } from '../utils';
+import { uuidv4 } from './utils';
 
 /**
  * 上传 Buffer 到 OSS（使用 STS 临时凭证）
