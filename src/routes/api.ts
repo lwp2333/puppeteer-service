@@ -1,74 +1,60 @@
 import { Router } from 'express';
-import { ClusterPDFTaskData, ClusterScreenshotTaskData, getCluster } from '../cluster';
-import { generateFilename, isValidUrl, sendError } from '../utils';
+import { getCluster } from '../cluster';
+import { isValidUrl, sendError, sendSuccess } from '../utils';
+import { transformParams } from '../params';
+import { pngCompress } from '../compress';
+import { uploadBufferByOss } from '../upload';
+import { log } from '../log';
 
 const router = Router();
 
-// 路由：网页截图
-router.post('/screenshot', async (req, res) => {
-  const { url, type = 'jpeg' } = req.body as ClusterScreenshotTaskData;
-  if (!isValidUrl(url)) {
-    return res.status(400).json({ error: 'Invalid or missing URL' });
-  }
-
-  try {
-    const cluster = await getCluster();
-    if (!cluster) throw new Error('Cluster not ready yet');
-
-    const imageBuffer = await cluster.execute(req.body);
-    const filename = generateFilename(type);
-    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
-    res.type(`image/${type}`).send(imageBuffer);
-  } catch (err) {
-    sendError(res, err, 'Screenshot error');
-  }
-});
-
-// 路由：PDF 生成
-router.post('/pdf', async (req, res) => {
-  const { url } = req.body as ClusterPDFTaskData;
-  if (!isValidUrl(url)) {
-    return res.status(400).json({ error: 'Invalid or missing URL' });
-  }
-
-  try {
-    const cluster = await getCluster();
-    if (!cluster) throw new Error('Cluster not ready yet');
-
-    const pdfBuffer = await cluster.execute(req.body);
-    const filename = generateFilename('pdf');
-
-    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
-    res.setHeader('Content-Type', 'application/pdf');
-    res.send(pdfBuffer);
-  } catch (err) {
-    sendError(res, err, 'PDF generation error');
-  }
-});
-
 // 路由：pdf、截图合并接口
 router.post('/generate', async (req, res) => {
-  const { url, format, type = 'jpeg' } = req.body;
+  await log.runWithTrace(async () => {
+    try {
+      log.info(`📋 请求体：${JSON.stringify(req.body)}`);
+      // AppCode 校验
+      const authorizationString = (req.headers.authorization || req.headers.Authorization) as string;
+      if (!authorizationString) {
+        sendError(res, '未获取到应用鉴权信息', 'AUTHORIZATION_CANNOT_BE_NULL');
+        return;
+      }
+      const appCodeKey = authorizationString.split(' ')[0];
+      const appCode = authorizationString.split(' ')[1];
+      if (appCodeKey !== 'APPCODE' || !appCode) {
+        sendError(res, '未获取到应用鉴权信息', 'AUTHORIZATION_CANNOT_BE_NULL');
+        return;
+      }
+      log.info(`🔑 业务Appcode：${appCode}`);
 
-  if (!isValidUrl(url)) {
-    return res.status(400).json({ error: 'Invalid or missing URL' });
-  }
+      const params = transformParams(req.body);
+      const { url, format, type, quality, transparentBackground, customFileName } = params as any;
+      if (!isValidUrl(url)) {
+        sendError(res, '请求体格式不正确', 'INVALID_REQUEST_BODY');
+        return;
+      }
+      const cluster = await getCluster();
+      if (!cluster) throw new Error('Cluster not ready yet');
 
-  try {
-    const cluster = await getCluster();
-    if (!cluster) throw new Error('Cluster not ready yet');
+      const isPDF = !!format;
+      const resultBuffer = await cluster.execute(params);
+      const resultType = transparentBackground && !isPDF ? 'png' : type;
 
-    const isPDF = !!format;
-    const resultBuffer = await cluster.execute(req.body);
+      const imageBuffer =
+        resultType === 'png' ? await pngCompress(resultBuffer as Buffer<ArrayBufferLike>, quality) : resultBuffer;
 
-    const filename = generateFilename(isPDF ? 'pdf' : type);
+      const ossUrl = await uploadBufferByOss(
+        imageBuffer as Buffer<ArrayBufferLike>,
+        appCode,
+        isPDF ? 'pdf' : resultType,
+        customFileName
+      );
 
-    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
-    res.setHeader('Content-Type', isPDF ? 'application/pdf' : `image/${type}`);
-    res.send(resultBuffer);
-  } catch (err) {
-    sendError(res, err, 'Generation error');
-  }
+      sendSuccess(res, ossUrl);
+    } catch (err) {
+      sendError(res, err, 'GENERATE_FAIL');
+    }
+  });
 });
 
 export default router;
