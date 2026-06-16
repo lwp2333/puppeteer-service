@@ -3,9 +3,9 @@ module.exports = {
     {
       name: 'puppeteer-service',
       script: 'dist/index.js',
-      instances: 2,
-      exec_mode: 'cluster',
-      max_memory_restart: '2048M',
+      instances: 1,
+      exec_mode: 'fork',
+      max_memory_restart: '1024M',
       env: {
         PORT: 9000,
         NODE_ENV: 'production',
