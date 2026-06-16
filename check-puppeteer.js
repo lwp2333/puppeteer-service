@@ -1,9 +1,12 @@
+const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
 
+dotenv.config();
+
 async function checkChromium() {
-  // 指定全局 Chromium 路径
-  const chromiumPath = '/usr/local/lib/chrome';
+  // 指定全局 Chromium 路径，支持通过环境变量 CHROMIUM_PATH 覆盖
+  const chromiumPath = process.env.CHROMIUM_PATH || '/usr/local/lib/chrome';
 
   // 检查 Chromium 文件是否存在
   if (!fs.existsSync(chromiumPath)) {
@@ -14,7 +17,7 @@ async function checkChromium() {
 
   try {
     // require 全局 Puppeteer
-    const puppeteer = require('/usr/local/lib/node_modules/puppeteer');
+    const puppeteer = require('puppeteer');
 
     // 尝试启动 Puppeteer 并打开一个页面
     const browser = await puppeteer.launch({

@@ -22,7 +22,7 @@ let cluster: Cluster<ClusterTaskData, Buffer | string> | null = null;
 
 function getGlobalChromiumPath() {
   try {
-    const chromiumPath = '/usr/local/lib/chrome';
+    const chromiumPath = process.env.CHROMIUM_PATH || '/usr/local/lib/chrome';
     if (!fs.existsSync(chromiumPath)) {
       throw new Error('全局 Chromium 不存在');
     }
